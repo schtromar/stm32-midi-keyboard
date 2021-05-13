@@ -27,7 +27,7 @@
 #include "stm32f4_discovery.h"
 #define ADC3_DR_ADDRESS     ((uint32_t)0x4001224C)
 __IO uint16_t ADC3ConvertedValue = 0;
-__IO uint32_t ADC3ConvertedVoltage = 0;
+__IO uint32_t ADC3Normalized = 0;
 void ADC3_CH12_DMA_Config(void);
 
 
@@ -67,52 +67,50 @@ int main(void) {
 
 
 	int active = 0;
+	int pressed = 0;
 	while(1){
-		//ADC3ConvertedVoltage = ADC3ConvertedValue *3300/0xFFF;
 		ADC_SoftwareStartConv(ADC3);
+		ADC3Normalized = ADC3ConvertedValue/4;
 
-/*
-		uint8_t buffer[] = "Hello, World!\r\n";
-		CDC_Transmit_FS(buffer, sizeof(buffer));
-		HAL_Delay(1000);
-*/
-
-		if(ADC3ConvertedValue > 2048){
-			if(!active){
-				active = 1;
-				send_MIDI_msg(noteOn, 4); // Send to usbd_midi_user
+		if(ADC3Normalized > 100){
+			if(!pressed){
+				pressed = 1;
+				active = 0x47;
+				GPIO_SetBits(GPIOD, GPIO_Pin_12);
+				startNote(active);
 			}
 		}else{
+			GPIO_ResetBits(GPIOD, GPIO_Pin_12);
+			stopNote();
 			active = 0;
-				send_MIDI_msg(noteOff, 4);
+			pressed = 0;
+
 		}
 	}
 
-/*
-
-	for(;;) {
-		if (BUTTON) {
-				// Debounce
-				Delay(10);
-				if (BUTTON) {
-					if(!active){
-						active = 1;
-						GPIO_SetBits(GPIOD, GPIO_Pin_12);
-						send_MIDI_msg(noteOn, 4); // Send to usbd_midi_user
-					}
-				}
-				else{
-					active = 0;
-					GPIO_ResetBits(GPIOD, GPIO_Pin_12);
-					send_MIDI_msg(noteOff, 4);
-					Delay(10);
-				}
-
-			}
-	}
-*/
-
 	return 0;
+}
+
+void startNote(uint8_t n){
+//	active = n;
+
+	uint8_t noteOn[4];
+	noteOn[0] = 0x08;	//header
+	noteOn[1] = 0x90;	//8 - note on; 0 - channel 0
+	noteOn[2] = 0x47;		//key id
+	noteOn[3] = 0x50;	//velocity
+
+	send_MIDI_msg(noteOn, 4);
+}
+
+void stopNote(uint8_t n){
+	uint8_t noteOff[4];
+	noteOff[0] = 0x08;
+	noteOff[1] = 0x80;
+	noteOff[2] = n;
+	noteOff[3] = 0x12;
+
+	send_MIDI_msg(noteOff, 4);
 }
 
 
