@@ -23,12 +23,18 @@
 #include "usbd_midi_core.h"
 #include "usbd_midi_user.h"
 
+#include "yongmei_map.h"
+
 // ADC
 #include "stm32f4_discovery.h"
 #define ADC3_DR_ADDRESS     ((uint32_t)0x4001224C)
 __IO uint16_t ADC3ConvertedValue = 0;
 __IO uint32_t ADC3Normalized = 0;
 void ADC3_CH12_DMA_Config(void);
+
+
+__IO int active = 0;
+
 
 
 // usb serial
@@ -45,6 +51,8 @@ __ALIGN_BEGIN USB_OTG_CORE_HANDLE  USB_OTG_dev __ALIGN_END;
 void Delay(volatile uint32_t nCount);
 void init();
 void calculation_test();
+
+//uint8_t map[1023];
 
 int main(void) {
 	ADC3_CH12_DMA_Config();
@@ -65,8 +73,14 @@ int main(void) {
 
 	init();
 
+	loadmap();
 
-	int active = 0;
+/*	while(!map[50]==65){
+
+	}
+*/
+
+//	int active = 0;
 	int pressed = 0;
 	while(1){
 		ADC_SoftwareStartConv(ADC3);
@@ -75,14 +89,15 @@ int main(void) {
 		if(ADC3Normalized > 100){
 			if(!pressed){
 				pressed = 1;
-				active = 0x47;
+//				active = 0x47;
 				GPIO_SetBits(GPIOD, GPIO_Pin_12);
-				startNote(active);
+//				startNote(0x47);
+				startNote(map[ADC3Normalized]);
 			}
 		}else{
 			GPIO_ResetBits(GPIOD, GPIO_Pin_12);
-			stopNote();
-			active = 0;
+//			stopNote();
+//			active = 0;
 			pressed = 0;
 
 		}
@@ -92,22 +107,29 @@ int main(void) {
 }
 
 void startNote(uint8_t n){
-//	active = n;
+	active = n;
 
 	uint8_t noteOn[4];
 	noteOn[0] = 0x08;	//header
 	noteOn[1] = 0x90;	//8 - note on; 0 - channel 0
-	noteOn[2] = 0x47;		//key id
+	noteOn[2] = active;		//key id
 	noteOn[3] = 0x50;	//velocity
 
 	send_MIDI_msg(noteOn, 4);
+
+	while(ADC3Normalized > 100){
+		ADC_SoftwareStartConv(ADC3);
+		ADC3Normalized = ADC3ConvertedValue/4;
+	}
+	stopNote();
 }
 
-void stopNote(uint8_t n){
+void stopNote(){
+
 	uint8_t noteOff[4];
 	noteOff[0] = 0x08;
 	noteOff[1] = 0x80;
-	noteOff[2] = n;
+	noteOff[2] = active;
 	noteOff[3] = 0x12;
 
 	send_MIDI_msg(noteOff, 4);
