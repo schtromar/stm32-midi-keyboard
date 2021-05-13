@@ -1,4 +1,3 @@
-
 void loadmap(){
 /*
 	map[175] = 65;
@@ -22,13 +21,15 @@ void loadmap(){
 	map[202] = map[200];
 	map[203] = map[200];
 */
-	for(int i=150; i<160; i++){
+	for(int i=0; i<4096; i++){
+		GPIO_SetBits(GPIOD, GPIO_Pin_15);
 		map[i] = 65;
+		GPIO_ResetBits(GPIOD, GPIO_Pin_15);
 	}
-	for(int i=160; i<175; i++){
+	for(int i=380; i<4096; i++){
 		map[i] = 66;
 	}
-	for(int i=175; i<185; i++){
+/*	for(int i=175; i<185; i++){
 		map[i] = 67;
 	}
 	for(int i=185; i<195; i++){
@@ -117,6 +118,11 @@ void loadmap(){
 	}
 	for(int i=512; i<1024; i++){
 		map[i] = 66;
+	}
+*/
+/*
+	for(int i=0; i<1024; i++){
+		map[i] = i/50;
 	}
 */
 }

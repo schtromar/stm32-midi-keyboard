@@ -1,9 +1,9 @@
 /**
  * @file main.c
- * @author Philip Karlsson
+ * @author Luka Maček
  * @version V1.0.0
- * @date 29-November-2014
- * @brief This file contains a simple example usage of the new midi device class.
+ * @date 13-may-2021
+ * @brief Midi usb keyboard using stm32f407-discovery and Philip Karlsson's stm32_usb_midi
  *
  */
 
@@ -29,16 +29,12 @@
 #include "stm32f4_discovery.h"
 #define ADC3_DR_ADDRESS     ((uint32_t)0x4001224C)
 __IO uint16_t ADC3ConvertedValue = 0;
-__IO uint32_t ADC3Normalized = 0;
+__IO uint16_t ADC3Normalized = 0;
 void ADC3_CH12_DMA_Config(void);
 
 
-__IO int active = 0;
+__IO uint8_t active;
 
-
-
-// usb serial
-//#include "usbd_cdc_if.h"
 
 // test tone
 #define BUTTON      (GPIOA->IDR & GPIO_Pin_0)
@@ -54,51 +50,32 @@ void calculation_test();
 
 //uint8_t map[1023];
 
+#define LOWERLIMIT 350
+
 int main(void) {
 	ADC3_CH12_DMA_Config();
-
-
-	// Simple midi messages for test notes..
-	uint8_t noteOn[4];
-	noteOn[0] = 0x08;
-	noteOn[1] = 0x90;
-	noteOn[2] = 0x47;
-	noteOn[3] = 0x47;
-
-	uint8_t noteOff[4];
-	noteOff[0] = 0x08;
-	noteOff[1] = 0x80;
-	noteOff[2] = 0x47;
-	noteOff[3] = 0x47;
-
 	init();
 
+	GPIO_SetBits(GPIOD, GPIO_Pin_14);
 	loadmap();
+	GPIO_ResetBits(GPIOD, GPIO_Pin_14);
 
-/*	while(!map[50]==65){
-
-	}
-*/
-
-//	int active = 0;
 	int pressed = 0;
+	active = 0;
 	while(1){
 		ADC_SoftwareStartConv(ADC3);
-		ADC3Normalized = ADC3ConvertedValue/4;
+		ADC3Normalized = ADC3ConvertedValue;
 
-		if(ADC3Normalized > 100){
+		if(ADC3Normalized > LOWERLIMIT){
 			if(!pressed){
 				pressed = 1;
-//				active = 0x47;
 				GPIO_SetBits(GPIOD, GPIO_Pin_12);
-//				startNote(0x47);
-				startNote(map[ADC3Normalized]);
+				startNote(map[ADC3ConvertedValue]);
+//				startNote(map[ADC3Normalized]);
 			}
 		}else{
-			GPIO_ResetBits(GPIOD, GPIO_Pin_12);
-//			stopNote();
-//			active = 0;
 			pressed = 0;
+			GPIO_ResetBits(GPIOD, GPIO_Pin_12);
 
 		}
 	}
@@ -111,15 +88,15 @@ void startNote(uint8_t n){
 
 	uint8_t noteOn[4];
 	noteOn[0] = 0x08;	//header
-	noteOn[1] = 0x90;	//8 - note on; 0 - channel 0
-	noteOn[2] = active;		//key id
+	noteOn[1] = 0x90;	//9 - note on; 0 - channel 0
+	noteOn[2] = active;	//key id
 	noteOn[3] = 0x50;	//velocity
 
 	send_MIDI_msg(noteOn, 4);
 
-	while(ADC3Normalized > 100){
+	while(ADC3Normalized > LOWERLIMIT){
+		ADC3Normalized = ADC3ConvertedValue;
 		ADC_SoftwareStartConv(ADC3);
-		ADC3Normalized = ADC3ConvertedValue/4;
 	}
 	stopNote();
 }
@@ -127,10 +104,10 @@ void startNote(uint8_t n){
 void stopNote(){
 
 	uint8_t noteOff[4];
-	noteOff[0] = 0x08;
-	noteOff[1] = 0x80;
-	noteOff[2] = active;
-	noteOff[3] = 0x12;
+	noteOff[0] = 0x08;	//header
+	noteOff[1] = 0x80;	//8 - note off; 0 - channel 0
+	noteOff[2] = active;	//key id
+	noteOff[3] = 0x50;	//velocity
 
 	send_MIDI_msg(noteOff, 4);
 }
