@@ -1,4 +1,3 @@
-void loadmap(){
 	uint16_t premap[26] = {
 		0,	//nič
 		770,	//65
@@ -27,6 +26,8 @@ void loadmap(){
 		3700,	//88
 		4096,	//rep
 	};
+
+void loadmap(){
 //	for(int j=65; j<90; j++)[
 	GPIO_SetBits(GPIOD, GPIO_Pin_15);
 	for(int i=0; i<26; i++){

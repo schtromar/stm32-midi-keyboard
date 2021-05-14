@@ -30,6 +30,8 @@
 #define ADC3_DR_ADDRESS     ((uint32_t)0x4001224C)
 __IO uint16_t ADC3ConvertedValue = 0;
 __IO uint16_t ADC3Normalized = 0;
+__IO uint8_t lockedAt = 0;
+
 void ADC3_CH12_DMA_Config(void);
 
 
@@ -63,8 +65,10 @@ int main(void) {
 
 	int pressed = 0;
 	active = 0;
+	ADC_SoftwareStartConv(ADC3);
+
 	while(1){
-		ADC_SoftwareStartConv(ADC3);
+//		ADC_SoftwareStartConv(ADC3);
 		ADC3Normalized = ADC3ConvertedValue;
 
 		if(ADC3Normalized > LOWERLIMIT){
@@ -94,17 +98,24 @@ void startNote(uint8_t n){
 
 	send_MIDI_msg(noteOn, 4);
 
+	ADC3Normalized = ADC3ConvertedValue;
+
+	lockedAt = active;
+	nactive = active;
 	while(ADC3Normalized > LOWERLIMIT){
 		ADC3Normalized = ADC3ConvertedValue;
-		ADC_SoftwareStartConv(ADC3);
-
 		nactive = map[ADC3Normalized];
 		if(nactive > active){
 			stopNote(active);
 			startNote(nactive);
+
+			GPIO_ResetBits(GPIOD, GPIO_Pin_15);
+
 		}
 	}
+
 	stopNote();
+
 }
 
 void stopNote(){
