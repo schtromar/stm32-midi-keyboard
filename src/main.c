@@ -72,7 +72,6 @@ int main(void) {
 				pressed = 1;
 				GPIO_SetBits(GPIOD, GPIO_Pin_12);
 				startNote(map[ADC3ConvertedValue]);
-//				startNote(map[ADC3Normalized]);
 			}
 		}else{
 			pressed = 0;
