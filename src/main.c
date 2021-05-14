@@ -34,6 +34,7 @@ void ADC3_CH12_DMA_Config(void);
 
 
 __IO uint8_t active;
+__IO uint8_t nactive;
 
 
 // test tone
@@ -97,6 +98,12 @@ void startNote(uint8_t n){
 	while(ADC3Normalized > LOWERLIMIT){
 		ADC3Normalized = ADC3ConvertedValue;
 		ADC_SoftwareStartConv(ADC3);
+
+		nactive = map[ADC3Normalized];
+		if(nactive > active){
+			stopNote(active);
+			startNote(nactive);
+		}
 	}
 	stopNote();
 }
