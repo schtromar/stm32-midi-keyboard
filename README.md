@@ -1,7 +1,7 @@
 STM32 MIDI KEYBOARD
 ===============
 
-A simple usb midi keyboard using an STM32407 Discovery board. 
+A simple usb midi keyboard using an STM32F407 Discovery board. 
 
 Wiring
 -----------
